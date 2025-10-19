@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from app.database import get_db
@@ -32,8 +32,11 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
 
 # Task READ ALL
 @router.get("/", response_model=List[TaskRead])
-def read_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    tasks = db.query(Task).offset(skip).limit(limit).all()
+def read_tasks(skip: int = 0, limit: int = 100, user_id: Optional[UUID] = None, db: Session = Depends(get_db)):
+    query = db.query(Task)
+    if user_id:
+        query = query.filter(Task.user_id == user_id)
+    tasks = query.offset(skip).limit(limit).all()
     return tasks
 
 # Task READ SPECIFIC
