@@ -12,7 +12,6 @@ router = APIRouter()
 # User CREATE
 @router.post("/", response_model=UserRead, status_code=201)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    """Create a new user"""
     existing_user = db.query(User).filter(User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -26,14 +25,12 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 # User READ ALL
 @router.get("/", response_model=List[UserRead])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """Get all users with pagination"""
     users = db.query(User).offset(skip).limit(limit).all()
     return users
 
 # User READ SPECIFIC
 @router.get("/{user_id}", response_model=UserRead)
 def read_user(user_id: UUID, db: Session = Depends(get_db)):
-    """Get a specific user by ID"""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -42,7 +39,6 @@ def read_user(user_id: UUID, db: Session = Depends(get_db)):
 # User UPDATE
 @router.put("/{user_id}", response_model=UserRead)
 def update_user(user_id: UUID, user: UserUpdate, db: Session = Depends(get_db)):
-    """Update a user"""
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -58,7 +54,6 @@ def update_user(user_id: UUID, user: UserUpdate, db: Session = Depends(get_db)):
 # User DELETE
 @router.delete("/{user_id}", status_code=204)
 def delete_user(user_id: UUID, db: Session = Depends(get_db)):
-    """Delete a user"""
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")

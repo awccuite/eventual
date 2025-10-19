@@ -1,15 +1,9 @@
-"""
-Unit-like test classes for API testing
-Each test class represents a specific operation with expected inputs/outputs
-"""
 from typing import Any, Dict, Optional
 from sqlalchemy.orm import Session
 from app.models.classes import User, Task
 
 # BASE TEST CLASS
 class BaseTest:
-    """Base class for all tests"""
-    
     def __init__(self, name: str, description: str):
         self.name = name
         self.description = description
@@ -18,7 +12,6 @@ class BaseTest:
         self.error = None
     
     def run(self, db: Session, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Run the test and return result"""
         try:
             self._execute(db, context)
             self.status = "PASS" if self._validate(context) else "FAIL"
@@ -42,8 +35,6 @@ class BaseTest:
 
 # USER TESTS
 class UserCreateTest(BaseTest):
-    """Test creating a user"""
-    
     def __init__(self, expected_name: str, expected_email: str, expected_phone: str):
         super().__init__(
             name="user_create",
@@ -78,8 +69,6 @@ class UserCreateTest(BaseTest):
         )
 
 class UserReadTest(BaseTest):
-    """Test reading a user by ID"""
-    
     def __init__(self, expected_email: str):
         super().__init__(
             name="user_read",
@@ -106,7 +95,6 @@ class UserReadTest(BaseTest):
         return self.result.get("email") == self.expected_email
 
 class UserUpdateTest(BaseTest):
-    """Test updating a user"""
     
     def __init__(self, new_name: str):
         super().__init__(
@@ -138,8 +126,6 @@ class UserUpdateTest(BaseTest):
         return self.result.get("new_name") == self.new_name
 
 class UserDeleteTest(BaseTest):
-    """Test deleting a user"""
-    
     def __init__(self):
         super().__init__(
             name="user_delete",
@@ -168,10 +154,7 @@ class UserDeleteTest(BaseTest):
             self.result.get("still_exists") is False
         )
 
-
 class UserListTest(BaseTest):
-    """Test listing all users"""
-    
     def __init__(self, min_expected: int = 0):
         super().__init__(
             name="user_list",
@@ -191,8 +174,6 @@ class UserListTest(BaseTest):
 
 # TASK TESTS
 class TaskCreateTest(BaseTest):
-    """Test creating a task"""
-    
     def __init__(self, expected_title: str, expected_status: int, expected_idm_key: Optional[str] = None):
         super().__init__(
             name="task_create",
@@ -232,8 +213,6 @@ class TaskCreateTest(BaseTest):
         )
 
 class TaskReadTest(BaseTest):
-    """Test reading a task by ID"""
-    
     def __init__(self, expected_title: str):
         super().__init__(
             name="task_read",
@@ -260,8 +239,6 @@ class TaskReadTest(BaseTest):
         return self.result.get("title") == self.expected_title
 
 class TaskUpdateTest(BaseTest):
-    """Test updating a task"""
-    
     def __init__(self, new_status: int):
         super().__init__(
             name="task_update",
@@ -292,8 +269,6 @@ class TaskUpdateTest(BaseTest):
         return self.result.get("new_status") == self.new_status
 
 class TaskDeleteTest(BaseTest):
-    """Test deleting a task"""
-    
     def __init__(self):
         super().__init__(
             name="task_delete",
@@ -323,8 +298,6 @@ class TaskDeleteTest(BaseTest):
         )
 
 class TaskListTest(BaseTest):
-    """Test listing all tasks"""
-    
     def __init__(self, min_expected: int = 0):
         super().__init__(
             name="task_list",
@@ -343,8 +316,6 @@ class TaskListTest(BaseTest):
         return self.result.get("count", 0) >= self.min_expected
 
 class TaskSummaryTest(BaseTest):
-    """Test task summary by status"""
-    
     def __init__(self, expected_summary: Optional[Dict[int, int]] = None):
         super().__init__(
             name="task_summary",

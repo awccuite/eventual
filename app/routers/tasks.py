@@ -12,7 +12,6 @@ router = APIRouter()
 # Task CREATE
 @router.post("/", response_model=TaskRead, status_code=201)
 def create_task(task: TaskCreate, db: Session = Depends(get_db)):
-    """Create a new task"""
     # Verify user exists
     user = db.query(User).filter(User.id == task.user_id).first()
     if not user:
@@ -34,14 +33,12 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
 # Task READ ALL
 @router.get("/", response_model=List[TaskRead])
 def read_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """Get all tasks with pagination"""
     tasks = db.query(Task).offset(skip).limit(limit).all()
     return tasks
 
 # Task READ SPECIFIC
 @router.get("/{task_id}", response_model=TaskRead)
 def read_task(task_id: UUID, db: Session = Depends(get_db)):
-    """Get a specific task by ID"""
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -50,7 +47,6 @@ def read_task(task_id: UUID, db: Session = Depends(get_db)):
 # Task UPDATE
 @router.put("/{task_id}", response_model=TaskRead)
 def update_task(task_id: UUID, task: TaskUpdate, db: Session = Depends(get_db)):
-    """Update a task"""
     db_task = db.query(Task).filter(Task.id == task_id).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -67,7 +63,6 @@ def update_task(task_id: UUID, task: TaskUpdate, db: Session = Depends(get_db)):
 # Task DELETE
 @router.delete("/{task_id}", status_code=204)
 def delete_task(task_id: UUID, db: Session = Depends(get_db)):
-    """Delete a task"""
     db_task = db.query(Task).filter(Task.id == task_id).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -79,7 +74,6 @@ def delete_task(task_id: UUID, db: Session = Depends(get_db)):
 # Summary Endpoint for tasks by status
 @router.get("/summary/status", response_model=dict)
 def task_summary_by_status(db: Session = Depends(get_db)):
-    """Get summary of tasks grouped by status"""
     summary = {}
     for status in [0, 1, 2]:  # 0: pending, 1: in progress, 2: completed
         count = db.query(Task).filter(Task.status == status).count()

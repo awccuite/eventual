@@ -10,7 +10,6 @@ from app.tests import (
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
-
 app = FastAPI(title="Eventual API", version="1.0.0")
 
 # Include routers
