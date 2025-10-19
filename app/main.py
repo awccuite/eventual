@@ -1,11 +1,13 @@
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
+from uuid import uuid4
 from app.database import engine, Base, get_db
 from app.routers import tasks, users
 from app.models.classes import User, Task
 from app.tests import (
     UserCreateTest, UserReadTest, UserUpdateTest, UserDeleteTest, UserListTest,
-    TaskCreateTest, TaskReadTest, TaskUpdateTest, TaskDeleteTest, TaskListTest, TaskSummaryTest
+    TaskCreateTest, TaskReadTest, TaskUpdateTest, TaskDeleteTest, TaskListTest, 
+    TaskSummaryTest, TaskFilterByUserTest
 )
 
 # Create database tables
@@ -30,6 +32,7 @@ def run_tests(db: Session = Depends(get_db)):
     context = {}
     
     test_suite = [
+        # SUCCESS TESTS
         UserCreateTest(
             expected_name="Test User",
             expected_email="test@example.com",
@@ -48,39 +51,104 @@ def run_tests(db: Session = Depends(get_db)):
         TaskUpdateTest(new_status=2),
         TaskListTest(min_expected=1),
         TaskSummaryTest(),
+        TaskFilterByUserTest(),
         
+        # Cleanup
         TaskDeleteTest(),
         UserDeleteTest(),
     ]
     
-    results = {
+    # Run success tests
+    results = []
+    for test in test_suite:
+        result = test.run(db, context)
+        results.append(result)
+    
+    # Clear context for error tests
+    context.clear()
+    
+    # ERROR TESTS - Same classes, but expecting errors
+    error_test_suite = [
+        UserReadTest(
+            expected_email="",
+            expect_error=True,
+            expected_error_msg="No user_id in context"
+        ),
+        UserUpdateTest(
+            new_name="Should Fail",
+            expect_error=True,
+            expected_error_msg="No user_id in context"
+        ),
+        UserDeleteTest(
+            expect_error=True,
+            expected_error_msg="No user_id in context"
+        ),
+        TaskReadTest(
+            expected_title="",
+            expect_error=True,
+            expected_error_msg="No task_id in context"
+        ),
+        TaskUpdateTest(
+            new_status=0,
+            expect_error=True,
+            expected_error_msg="No task_id in context"
+        ),
+        TaskDeleteTest(
+            expect_error=True,
+            expected_error_msg="No task_id in context"
+        ),
+        
+        # Duplicate email test
+        UserCreateTest(
+            expected_name="Unique User",
+            expected_email="unique@example.com",
+            expected_phone="555-UNIQ"
+        ),
+        UserCreateTest(
+            expected_name="Duplicate",
+            expected_email="unique@example.com",
+            expected_phone="555-DUPE",
+            expect_error=True,
+            expected_error_msg="duplicate key value"
+        ),
+        UserDeleteTest(),  # Cleanup
+        
+        # Invalid user_id for task
+        TaskCreateTest(
+            expected_title="Bad Task",
+            expected_status=0,
+            expect_error=True,
+            expected_error_msg="No user_id in context"
+        ),
+    ]
+    
+    # Run error tests
+    for test in error_test_suite:
+        result = test.run(db, context)
+        results.append(result)
+    
+    # Build response
+    response = {
         "status": "running",
-        "tests": [],
+        "tests": results,
         "errors": []
     }
     
-    for test in test_suite:
-        try:
-            test_result = test.run(db, context)
-            results["tests"].append(test_result)
-            
-            if test_result["status"] == "ERROR":
-                results["errors"].append({
-                    "test": test_result["name"],
-                    "error": test_result["error"]
-                })
-        except Exception as e:
-            results["errors"].append({
-                "test": test.name,
-                "error": str(e)
+    # Collect errors
+    for test_result in results:
+        if test_result["status"] == "ERROR":
+            response["errors"].append({
+                "test": test_result["name"],
+                "error": test_result["error"]
             })
     
-    passed = sum(1 for test in results["tests"] if test["status"] == "PASS")
-    failed = sum(1 for test in results["tests"] if test["status"] == "FAIL")
-    errors = sum(1 for test in results["tests"] if test["status"] == "ERROR")
-    total = len(results["tests"])
+    # Calculate summary
+    passed = sum(1 for test in results if test["status"] == "PASS")
+    failed = sum(1 for test in results if test["status"] == "FAIL")
+    errors = sum(1 for test in results if test["status"] == "ERROR")
+    total = len(results)
     
-    results["summary"] = {
+    response["summary"] = {
         "total": total,
         "passed": passed,
         "failed": failed,
@@ -88,10 +156,10 @@ def run_tests(db: Session = Depends(get_db)):
     }
     
     if errors > 0:
-        results["status"] = "ERROR"
+        response["status"] = "ERROR"
     elif failed > 0:
-        results["status"] = f"PARTIAL: {passed}/{total} PASSED"
+        response["status"] = f"PARTIAL: {passed}/{total} PASSED"
     else:
-        results["status"] = "ALL TESTS PASSED"
+        response["status"] = "ALL TESTS PASSED"
     
-    return results
+    return response

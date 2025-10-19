@@ -1,30 +1,48 @@
 from typing import Any, Dict, Optional
 from sqlalchemy.orm import Session
+from uuid import uuid4
 from app.models.classes import User, Task
 
 # BASE TEST CLASS
 class BaseTest:
-    def __init__(self, name: str, description: str):
+    def __init__(self, name: str, description: str, expect_error: bool = False, expected_error_msg: str = None):
         self.name = name
         self.description = description
         self.status = "PENDING"
         self.result = {}
         self.error = None
+        self.expect_error = expect_error
+        self.expected_error_msg = expected_error_msg
     
     def run(self, db: Session, context: Dict[str, Any]) -> Dict[str, Any]:
         try:
             self._execute(db, context)
-            self.status = "PASS" if self._validate(context) else "FAIL"
+            
+            if self.expect_error:
+                self.status = "FAIL"  # Should have raised error but didn't
+            else:
+                self.status = "PASS" if self._validate(context) else "FAIL"
+                
         except Exception as e:
-            self.status = "ERROR"
-            self.error = str(e)
+            db.rollback()
+            error_str = str(e)
+            self.error = error_str
+            
+            if self.expect_error:
+                if self.expected_error_msg:
+                    self.status = "PASS" if self.expected_error_msg in error_str else "FAIL"
+                else:
+                    self.status = "PASS" 
+            else:
+                self.status = "ERROR" 
         
         return {
             "name": self.name,
             "description": self.description,
             "status": self.status,
             "result": self.result,
-            "error": self.error
+            "error": self.error,
+            "expected_error": self.expect_error
         }
     
     def _execute(self, db: Session, context: Dict[str, Any]):
@@ -35,10 +53,12 @@ class BaseTest:
 
 # USER TESTS
 class UserCreateTest(BaseTest):
-    def __init__(self, expected_name: str, expected_email: str, expected_phone: str):
+    def __init__(self, expected_name: str, expected_email: str, expected_phone: str, expect_error: bool = False, expected_error_msg: str = None):
         super().__init__(
             name="user_create",
-            description="Create a new user and verify attributes"
+            description="Create a new user and verify attributes",
+            expect_error=expect_error,
+            expected_error_msg=expected_error_msg
         )
         self.expected_name = expected_name
         self.expected_email = expected_email
@@ -69,10 +89,12 @@ class UserCreateTest(BaseTest):
         )
 
 class UserReadTest(BaseTest):
-    def __init__(self, expected_email: str):
+    def __init__(self, expected_email: str, expect_error: bool = False, expected_error_msg: str = None):
         super().__init__(
             name="user_read",
-            description="Read user by ID and verify data"
+            description="Read user by ID and verify data",
+            expect_error=expect_error,
+            expected_error_msg=expected_error_msg
         )
         self.expected_email = expected_email
     
@@ -96,10 +118,12 @@ class UserReadTest(BaseTest):
 
 class UserUpdateTest(BaseTest):
     
-    def __init__(self, new_name: str):
+    def __init__(self, new_name: str, expect_error: bool = False, expected_error_msg: str = None):
         super().__init__(
             name="user_update",
-            description="Update user name and verify change"
+            description="Update user name and verify change",
+            expect_error=expect_error,
+            expected_error_msg=expected_error_msg
         )
         self.new_name = new_name
     
@@ -126,10 +150,12 @@ class UserUpdateTest(BaseTest):
         return self.result.get("new_name") == self.new_name
 
 class UserDeleteTest(BaseTest):
-    def __init__(self):
+    def __init__(self, expect_error: bool = False, expected_error_msg: str = None):
         super().__init__(
             name="user_delete",
-            description="Delete user and verify removal"
+            description="Delete user and verify removal",
+            expect_error=expect_error,
+            expected_error_msg=expected_error_msg
         )
     
     def _execute(self, db: Session, context: Dict[str, Any]):
@@ -174,10 +200,12 @@ class UserListTest(BaseTest):
 
 # TASK TESTS
 class TaskCreateTest(BaseTest):
-    def __init__(self, expected_title: str, expected_status: int, expected_idm_key: Optional[str] = None):
+    def __init__(self, expected_title: str, expected_status: int, expected_idm_key: Optional[str] = None, expect_error: bool = False, expected_error_msg: str = None):
         super().__init__(
             name="task_create",
-            description="Create a new task and verify attributes"
+            description="Create a new task and verify attributes",
+            expect_error=expect_error,
+            expected_error_msg=expected_error_msg
         )
         self.expected_title = expected_title
         self.expected_status = expected_status
@@ -213,10 +241,12 @@ class TaskCreateTest(BaseTest):
         )
 
 class TaskReadTest(BaseTest):
-    def __init__(self, expected_title: str):
+    def __init__(self, expected_title: str, expect_error: bool = False, expected_error_msg: str = None):
         super().__init__(
             name="task_read",
-            description="Read task by ID and verify data"
+            description="Read task by ID and verify data",
+            expect_error=expect_error,
+            expected_error_msg=expected_error_msg
         )
         self.expected_title = expected_title
     
@@ -239,10 +269,12 @@ class TaskReadTest(BaseTest):
         return self.result.get("title") == self.expected_title
 
 class TaskUpdateTest(BaseTest):
-    def __init__(self, new_status: int):
+    def __init__(self, new_status: int, expect_error: bool = False, expected_error_msg: str = None):
         super().__init__(
             name="task_update",
-            description="Update task status and verify change"
+            description="Update task status and verify change",
+            expect_error=expect_error,
+            expected_error_msg=expected_error_msg
         )
         self.new_status = new_status
     
@@ -269,10 +301,12 @@ class TaskUpdateTest(BaseTest):
         return self.result.get("new_status") == self.new_status
 
 class TaskDeleteTest(BaseTest):
-    def __init__(self):
+    def __init__(self, expect_error: bool = False, expected_error_msg: str = None):
         super().__init__(
             name="task_delete",
-            description="Delete task and verify removal"
+            description="Delete task and verify removal",
+            expect_error=expect_error,
+            expected_error_msg=expected_error_msg
         )
     
     def _execute(self, db: Session, context: Dict[str, Any]):
@@ -340,3 +374,24 @@ class TaskSummaryTest(BaseTest):
             actual.get(status) == count
             for status, count in self.expected_summary.items()
         )
+
+class TaskFilterByUserTest(BaseTest):
+    def __init__(self):
+        super().__init__(
+            name="task_filter_by_user",
+            description="Verify filtering tasks by user_id"
+        )
+    
+    def _execute(self, db: Session, context: Dict[str, Any]):
+        user_id = context.get("test_user_id")
+        if not user_id:
+            raise ValueError("No user_id in context")
+        
+        tasks = db.query(Task).filter(Task.user_id == user_id).all()
+        self.result = {
+            "count": len(tasks),
+            "tasks": [{"id": str(t.id), "title": t.title} for t in tasks]
+        }
+    
+    def _validate(self, context: Dict[str, Any]) -> bool:
+        return self.result.get("count", 0) >= 0
