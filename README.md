@@ -10,19 +10,19 @@ git clone <repository-url>
 cd eventual
 ```
 
-Create virtual environment and install dependencies:
+Create a virtual environment and install dependencies in requirements.txt:
 ```bash
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Start PostgreSQL:
+Start PostgreSQL via docker:
 ```bash
 docker-compose up -d
 ```
 
-Run the application:
+Run the application using uvicorn:
 ```bash
 python -m uvicorn app.main:app --reload
 ```
@@ -46,6 +46,10 @@ Tasks:
 - GET /tasks/{id} - Get task
 - PUT /tasks/{id} - Update task
 - DELETE /tasks/{id} - Delete task
+
+Generic: 
+- TESTS /test/ - Run unit test suite
+- HEALTH /health/ - Check if the application is alive 
 
 ## Database
 
