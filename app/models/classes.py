@@ -4,7 +4,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
 
-
 class User(Base):
     __tablename__ = "users"
 
@@ -14,7 +13,6 @@ class User(Base):
     phone_number = Column(String, unique=True, nullable=True)
 
     tasks = relationship("Task", back_populates="owner")
-
 
 class Task(Base):
     __tablename__ = "tasks"
